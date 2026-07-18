@@ -1,127 +1,123 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Menu, X, FileDown } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { Moon, Sun, Download, Menu, X } from "lucide-react"
+import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
-import { Button, buttonVariants } from "@/components/ui/button"
-import ThemeToggle from "@/components/ThemeToggle"
 
-interface NavLink {
-  label: string
-  href: string
-}
-
-const links: NavLink[] = [
-  { label: "Home", href: "#hero" },
+const navLinks = [
+  { label: "Work", href: "#projects" },
   { label: "About", href: "#about" },
-  { label: "Skills", href: "#skills" },
-  { label: "Projects", href: "#projects" },
-  { label: "Experience", href: "#experience" },
-  { label: "Blog", href: "#blog" },
+  { label: "Blog", href: "/blog" },
   { label: "Contact", href: "#contact" },
 ]
 
-interface NavbarProps {
-  resumeUrl?: string
-}
-
-export default function Navbar({ resumeUrl }: NavbarProps) {
+export default function Navbar() {
+  const { theme, toggle } = useTheme()
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const navRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
+    const onScroll = () => setScrolled(window.scrollY > 40)
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
-  const scrollTo = (href: string) => {
-    setOpen(false)
-    const id = href.replace("#", "")
-    const el = document.getElementById(id)
-    el?.scrollIntoView({ behavior: "smooth" })
-  }
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : ""
+    return () => { document.body.style.overflow = "" }
+  }, [open])
 
   return (
-    <header
+    <nav
+      ref={navRef}
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        scrolled ? "glass shadow-sm" : "bg-transparent"
+        "fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 transition-all duration-300",
+        scrolled && "glass shadow-xl shadow-black/10",
       )}
+      style={{
+        background: scrolled
+          ? "linear-gradient(160deg, rgba(5,10,20,0.85), rgba(5,10,20,0.70))"
+          : "transparent",
+        borderBottom: scrolled ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
+        backdropFilter: scrolled ? "blur(18px)" : "none",
+      }}
     >
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <a
-          href="#hero"
-          onClick={(e) => { e.preventDefault(); scrollTo("#hero") }}
-          className="text-lg font-bold tracking-tight"
+      <a href="/" className="text-xl font-bold tracking-tight font-[family-name:var(--font-space)]">
+        Adelere<span style={{ color: "#4fa3ff" }}>Kehinde</span>
+      </a>
+
+      <div className="hidden md:flex items-center gap-8">
+        {navLinks.map((l) => (
+          <a
+            key={l.label}
+            href={l.href}
+            className="text-sm text-muted hover:text-foreground transition-colors font-medium"
+          >
+            {l.label}
+          </a>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-3">
+        <button
+          onClick={toggle}
+          className="w-9 h-9 flex items-center justify-center rounded-full border border-white/10 hover:border-white/25 transition-colors"
+          aria-label="Toggle theme"
         >
-          AdelereKehinde
+          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+
+        <a
+          href="/Adelere Cv.pdf"
+          download="Adelere-Kehinde-CV.pdf"
+          className={cn(
+            "hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all",
+            "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25",
+          )}
+        >
+          <Download size={14} />
+          Resume
         </a>
 
-        <nav className="hidden md:flex items-center gap-1">
-          {links.map((link) => (
-            <button
-              key={link.href}
-              onClick={() => scrollTo(link.href)}
-              className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent"
-            >
-              {link.label}
-            </button>
-          ))}
-          <div className="ml-2 flex items-center gap-2">
-            <ThemeToggle />
-            {resumeUrl && (
-              <a
-                href={resumeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                <FileDown className="size-4" />
-                Resume
-              </a>
-            )}
-          </div>
-        </nav>
-
-        <div className="flex md:hidden items-center gap-2">
-          <ThemeToggle />
-          <button
-            onClick={() => setOpen(!open)}
-            className="glass p-2.5 rounded-full"
-            aria-label="Toggle menu"
-          >
-            {open ? <X className="size-5" /> : <Menu className="size-5" />}
-          </button>
-        </div>
+        <button
+          className="md:hidden w-9 h-9 flex items-center justify-center rounded-full border border-white/10"
+          onClick={() => setOpen(!open)}
+          aria-label="Menu"
+        >
+          {open ? <X size={18} /> : <Menu size={18} />}
+        </button>
       </div>
 
       {open && (
-        <div className="md:hidden glass border-t border-border">
-          <div className="px-4 py-4 space-y-1">
-            {links.map((link) => (
-              <button
-                key={link.href}
-                onClick={() => scrollTo(link.href)}
-                className="block w-full text-left px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors"
-              >
-                {link.label}
-              </button>
-            ))}
-            {resumeUrl && (
-              <a
-                href={resumeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full mt-2")}
-              >
-                <FileDown className="size-4" />
-                Download Resume
-              </a>
-            )}
-          </div>
+        <div
+          className="fixed inset-0 top-16 z-40 flex flex-col items-center justify-center gap-8 md:hidden"
+          style={{
+            background: "rgba(5,10,20,0.96)",
+            backdropFilter: "blur(24px)",
+          }}
+        >
+          {navLinks.map((l) => (
+            <a
+              key={l.label}
+              href={l.href}
+              onClick={() => setOpen(false)}
+              className="text-2xl font-medium hover:text-primary transition-colors"
+            >
+              {l.label}
+            </a>
+          ))}
+          <a
+            href="/Adelere Cv.pdf"
+            download="Adelere-Kehinde-CV.pdf"
+            className="flex items-center gap-2 px-6 py-3 rounded-full bg-primary/15 text-primary border border-primary/30 text-lg font-medium"
+          >
+            <Download size={18} />
+            Resume
+          </a>
         </div>
       )}
-    </header>
+    </nav>
   )
 }

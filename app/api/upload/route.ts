@@ -1,36 +1,40 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { createClient, createAdminClient } from "@/lib/supabase/server"
+import { NextResponse } from "next/server"
 
-const ALLOWED_TYPES = ["image/", "application/pdf"];
-const MAX_SIZE = 10 * 1024 * 1024;
+export async function POST(request: Request) {
+  const supabase = await createClient()
+  const { data: authData, error: authError } = await supabase.auth.getUser()
 
-export async function POST(req: NextRequest) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const formData = await req.formData();
-    const file = formData.get("file") as File | null;
-
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
-    }
-
-    const isValidType = ALLOWED_TYPES.some((t) => file.type.startsWith(t));
-    if (!isValidType) {
-      return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
-    }
-
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: "File too large (max 10MB)" }, { status: 400 });
-    }
-
-    const mockUrl = `https://res.cloudinary.com/demo/image/upload/v1/portfolio/${file.name}`;
-
-    return NextResponse.json({ url: mockUrl });
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  if (authError || !authData.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  const formData = await request.formData()
+  const file = formData.get("file") as File | null
+  const bucket = (formData.get("bucket") as string) || "uploads"
+
+  if (!file) {
+    return NextResponse.json({ error: "No file provided" }, { status: 400 })
+  }
+
+  const ext = file.name.split(".").pop()
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+  const bytes = await file.arrayBuffer()
+  const buffer = new Uint8Array(bytes)
+
+  const admin = createAdminClient()
+  const { data, error } = await admin.storage
+    .from(bucket)
+    .upload(fileName, buffer, {
+      contentType: file.type,
+      upsert: false,
+    })
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  const { data: urlData } = admin.storage.from(bucket).getPublicUrl(data.path)
+
+  return NextResponse.json({ url: urlData.publicUrl })
 }

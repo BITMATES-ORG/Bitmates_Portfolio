@@ -1,16 +1,15 @@
-import { NextResponse } from "next/server";
-import { getUser, getRepos, getContributionGraph } from "@/lib/github";
+import { getUser, getRepos } from "@/lib/github"
+import { NextResponse } from "next/server"
 
-export async function GET() {
-  try {
-    const [user, repos, contributionGraph] = await Promise.all([
-      getUser(),
-      getRepos(),
-      getContributionGraph(),
-    ]);
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const type = searchParams.get("type") || "repos"
 
-    return NextResponse.json({ user, repos, contributionGraph });
-  } catch {
-    return NextResponse.json({ error: "Failed to fetch GitHub data" }, { status: 500 });
+  if (type === "user") {
+    const user = await getUser()
+    return NextResponse.json(user ?? {})
   }
+
+  const repos = await getRepos()
+  return NextResponse.json(repos ?? [])
 }

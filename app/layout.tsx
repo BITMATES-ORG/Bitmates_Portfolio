@@ -1,16 +1,6 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import type { Metadata } from "next"
+import { ThemeProvider } from "@/components/theme-provider"
+import "./globals.css"
 
 export const metadata: Metadata = {
   title: {
@@ -18,30 +8,30 @@ export const metadata: Metadata = {
     template: "%s — AdelereKehinde",
   },
   description:
-    "I build scalable web and mobile applications. Fullstack developer specializing in modern web technologies.",
+    "Full-stack, mobile, and backend engineer crafting fast, polished products end to end — from database to pixel.",
   openGraph: {
     title: "AdelereKehinde — Fullstack Developer",
     description:
-      "I build scalable web and mobile applications.",
-    url: "https://adelerekehinde.dev",
-    siteName: "AdelereKehinde",
-    locale: "en_US",
+      "Full-stack, mobile, and backend engineer crafting fast, polished products end to end — from database to pixel.",
     type: "website",
+    locale: "en_US",
+    siteName: "AdelereKehinde",
   },
   twitter: {
     card: "summary_large_image",
     title: "AdelereKehinde — Fullstack Developer",
     description:
-      "I build scalable web and mobile applications.",
+      "Full-stack, mobile, and backend engineer crafting fast, polished products end to end — from database to pixel.",
   },
-  robots: { index: true, follow: true },
-};
+  icons: {
+    icon: "/images/portfolio.png",
+    apple: "/images/portfolio.png",
+  },
+}
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -49,7 +39,12 @@ export default function RootLayout({
               (function() {
                 try {
                   var theme = localStorage.getItem('theme');
-                  if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  if (!theme) {
+                    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  }
+                  if (theme === 'light') {
+                    document.documentElement.classList.remove('dark');
+                  } else {
                     document.documentElement.classList.add('dark');
                   }
                 } catch(e) {}
@@ -57,8 +52,16 @@ export default function RootLayout({
             `,
           }}
         />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body className="min-h-screen flex flex-col antialiased">{children}</body>
+      <body className="antialiased">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
-  );
+  )
 }

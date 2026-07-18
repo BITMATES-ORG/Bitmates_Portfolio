@@ -1,31 +1,25 @@
-import { prisma } from "@/lib/db";
+import type { MetadataRoute } from "next"
+import { createAdminClient } from "@/lib/supabase/server"
 
-export default async function sitemap() {
-  const baseUrl = "https://adelerekehinde.dev";
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl = "https://adelerekehinde.vercel.app"
+  const admin = createAdminClient()
 
-  let blogEntries: { url: string; lastModified: Date; changeFrequency: "monthly"; priority: number }[] = [];
-  try {
-    const posts = await prisma.blogPost.findMany({
-      where: { published: true },
-      select: { slug: true, publishedAt: true },
-    });
-    blogEntries = posts.map((post) => ({
+  const { data: posts } = await admin
+    .from("blog_posts")
+    .select("slug, updated_at")
+    .eq("published", true)
+
+  const blogPages =
+    posts?.map((post) => ({
       url: `${baseUrl}/blog/${post.slug}`,
-      lastModified: post.publishedAt,
+      lastModified: new Date(post.updated_at ?? Date.now()),
       changeFrequency: "monthly" as const,
-      priority: 0.7,
-    }));
-  } catch {
-    // DB not available during build
-  }
+      priority: 0.8,
+    })) ?? []
 
   return [
-    {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: "weekly" as const,
-      priority: 1,
-    },
-    ...blogEntries,
-  ];
+    { url: baseUrl, lastModified: new Date(), changeFrequency: "weekly", priority: 1 },
+    ...blogPages,
+  ]
 }

@@ -1,130 +1,69 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-border: var(--border);
-  --color-ring: var(--ring);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --radius: 0.625rem;
-}
-
-:root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
-  --primary: #1e40af;
-  --primary-foreground: #ffffff;
-  --muted: #f5f5f5;
-  --muted-foreground: #737373;
-  --accent: #dbeafe;
-  --accent-foreground: #1e3a5f;
-  --card: #ffffff;
-  --card-foreground: #0a0a0a;
-  --border: #e5e7eb;
-  --ring: #1e40af;
-}
-
-.dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --primary: #3b82f6;
-  --primary-foreground: #ffffff;
-  --muted: #1a1a1a;
-  --muted-foreground: #a3a3a3;
-  --accent: #1e3a5f;
-  --accent-foreground: #bfdbfe;
-  --card: #141414;
-  --card-foreground: #ededed;
-  --border: #262626;
-  --ring: #3b82f6;
+  --color-primary: oklch(0.62 0.18 255);
+  --color-primary-dark: oklch(0.55 0.16 260);
+  --color-primary-light: oklch(0.72 0.14 230);
+  --color-accent-1: oklch(0.65 0.2 310);
+  --color-accent-2: oklch(0.7 0.15 175);
+  --color-foreground: oklch(0.93 0.01 260);
+  --color-muted: oklch(0.6 0.03 260);
+  --color-background: oklch(0.04 0.02 260);
+  --color-card: oklch(0.08 0.02 260);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-}
-
-@keyframes holographic-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.holographic-bg {
-  background: linear-gradient(
-    135deg,
-    rgba(59, 130, 246, 0.15),
-    rgba(139, 92, 246, 0.15),
-    rgba(59, 130, 246, 0.1),
-    rgba(16, 185, 129, 0.1),
-    rgba(59, 130, 246, 0.15)
-  );
-  background-size: 400% 400%;
-  animation: holographic-shift 8s ease infinite;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.08);
+  background: linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015));
+  border: 1px solid rgba(255,255,255,0.12);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
 }
 
-.dark .glass {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+.glass-strong {
+  background: linear-gradient(160deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.18);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border-radius: 28px;
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+.glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.28;
+  pointer-events: none;
 }
 
-.dark .glass-card {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+.text-accent {
+  background: linear-gradient(100deg, #6fb6ff, #a68bff 45%, #5fe0d0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
-/* Scroll-triggered reveal */
-.reveal {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.7s ease, transform 0.7s ease;
+.font-heading {
+  font-family: 'Space Grotesk', sans-serif;
 }
 
-.reveal.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--muted-foreground);
-  border-radius: 4px;
-}
-
-/* Smooth scroll */
-html {
-  scroll-behavior: smooth;
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: #7ecbff;
+  background: rgba(79,163,255,0.08);
+  border: 1px solid rgba(79,163,255,0.25);
+  padding: 6px 14px;
+  border-radius: 999px;
+  margin-bottom: 22px;
 }

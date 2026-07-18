@@ -1,61 +1,58 @@
 "use client"
 
-import { useEffect, useRef } from "react"
-import { gsap } from "gsap"
+import { useEffect, useMemo, useRef } from "react"
+import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
-import { Github, Users, GitFork, Star, Eye, Code2, ExternalLink } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { GitBranch, Star, BookOpen, Users } from "lucide-react"
 
 gsap.registerPlugin(ScrollTrigger)
 
 interface GitHubUser {
   login: string
-  avatar_url: string
-  html_url: string
-  name: string
-  bio: string
-  public_repos: number
-  followers: number
-  following: number
+  name?: string
+  avatar_url?: string
+  public_repos?: number
+  followers?: number
 }
 
-interface GitHubRepo {
-  id: number
+interface Repo {
   name: string
-  html_url: string
-  description: string
-  fork: boolean
-  stargazers_count: number
-  language: string
-  updated_at: string
-  topics: string[]
+  description?: string
+  html_url?: string
+  stargazers_count?: number
+  forks_count?: number
+  language?: string
 }
 
 interface GitHubActivityProps {
-  user: GitHubUser | null
-  repos: GitHubRepo[]
+  user: GitHubUser
+  repos: Repo[]
 }
 
 export default function GitHubActivity({ user, repos }: GitHubActivityProps) {
   const sectionRef = useRef<HTMLElement>(null)
-  const contentRef = useRef<HTMLDivElement>(null)
+  const colsRef = useRef<HTMLDivElement>(null)
+
+  const graphBlocks = useMemo(() => {
+    return Array.from({ length: 7 * 10 }, (_, i) => {
+      const seed = ((i + 1) * 17 + (user.login?.length ?? 0) * 3) % 100
+      const intensity = seed / 100
+      let bg = "bg-white/5"
+      if (intensity > 0.7) bg = "bg-primary/40"
+      else if (intensity > 0.4) bg = "bg-primary/20"
+      else if (intensity > 0.15) bg = "bg-primary/10"
+      return bg
+    })
+  }, [user.login])
 
   useEffect(() => {
-    const children = contentRef.current?.children
-    if (!children?.length) return
-
     const ctx = gsap.context(() => {
-      gsap.from(children, {
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 80%",
-        },
+      gsap.from(colsRef.current?.children || [], {
+        scrollTrigger: { trigger: sectionRef.current, start: "top 80%" },
         y: 40,
         opacity: 0,
         duration: 0.7,
-        stagger: 0.1,
+        stagger: 0.15,
         ease: "power3.out",
       })
     }, sectionRef)
@@ -63,126 +60,127 @@ export default function GitHubActivity({ user, repos }: GitHubActivityProps) {
     return () => ctx.revert()
   }, [])
 
-  if (!user) return null
-
-  const sortedRepos = [...repos].sort((a, b) => b.stargazers_count - a.stargazers_count).slice(0, 6)
-
   return (
     <section
-      id="github"
       ref={sectionRef}
-      className="relative py-24"
+      id="github"
+      className="relative py-28 px-6 md:px-12"
     >
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">GitHub Activity</h2>
-          <div className="w-20 h-1 bg-primary mx-auto rounded-full" />
+      <div className="max-w-6xl mx-auto">
+        <div className="section-label">
+          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+          GITHUB
         </div>
 
-        <div ref={contentRef} className="space-y-8">
-          <div className="glass-card rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-6">
-            <div className="size-20 rounded-full overflow-hidden shrink-0">
-              <img
-                src={user.avatar_url}
-                alt={user.name || user.login}
-                className="size-full object-cover"
-              />
-            </div>
-            <div className="flex-1 text-center sm:text-left">
-              <h3 className="text-xl font-semibold">{user.name || user.login}</h3>
-              {user.bio && (
-                <p className="text-sm text-muted-foreground mt-1">{user.bio}</p>
-              )}
-            </div>
-            <div className="flex gap-6 text-center">
-              <div>
-                <p className="text-2xl font-bold">{user.followers}</p>
-                <p className="text-xs text-muted-foreground flex items-center gap-1 justify-center">
-                  <Users className="size-3" />
-                  Followers
-                </p>
+        <div ref={colsRef} className="grid md:grid-cols-2 gap-8">
+          {/* Profile card */}
+          <div className="glass p-6 space-y-5">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-primary/20 shrink-0">
+                {user.avatar_url ? (
+                  <img
+                    src={user.avatar_url}
+                    alt={user.name ?? user.login}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-card text-xl font-bold text-primary">
+                    {(user.name ?? user.login).charAt(0)}
+                  </div>
+                )}
               </div>
               <div>
-                <p className="text-2xl font-bold">{user.following}</p>
-                <p className="text-xs text-muted-foreground flex items-center gap-1 justify-center">
-                  <Users className="size-3" />
-                  Following
-                </p>
+                <div className="text-lg font-semibold font-[family-name:var(--font-space)]">
+                  {user.name ?? user.login}
+                </div>
+                <div className="text-sm text-muted font-[family-name:var(--font-mono)]">
+                  @{user.login}
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold">{user.public_repos}</p>
-                <p className="text-xs text-muted-foreground flex items-center gap-1 justify-center">
-                  <Code2 className="size-3" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="glass p-3 text-center">
+                <div className="flex justify-center mb-1">
+                  <BookOpen size={14} className="text-primary" />
+                </div>
+                <div className="text-lg font-bold">{user.public_repos ?? 0}</div>
+                <div className="text-[10px] text-muted font-[family-name:var(--font-mono)] uppercase tracking-wider">
                   Repos
-                </p>
+                </div>
+              </div>
+              <div className="glass p-3 text-center">
+                <div className="flex justify-center mb-1">
+                  <Users size={14} className="text-primary" />
+                </div>
+                <div className="text-lg font-bold">{user.followers ?? 0}</div>
+                <div className="text-[10px] text-muted font-[family-name:var(--font-mono)] uppercase tracking-wider">
+                  Followers
+                </div>
               </div>
             </div>
-            <a
-              href={user.html_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              <Github className="size-4" />
-              View Profile
-            </a>
           </div>
 
-          {sortedRepos.length > 0 && (
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Top Repositories</h4>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {sortedRepos.map((repo) => (
-                  <a
-                    key={repo.id}
-                    href={repo.html_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="glass-card rounded-xl p-5 space-y-3 hover:bg-accent/50 transition-colors group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h5 className="font-medium text-sm truncate group-hover:text-primary transition-colors">
-                        {repo.name}
-                      </h5>
-                      <ExternalLink className="size-3.5 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                    {repo.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {repo.description}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      {repo.language && (
-                        <span className="flex items-center gap-1">
-                          <span className="size-2 rounded-full bg-primary" />
-                          {repo.language}
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <Star className="size-3" />
-                        {repo.stargazers_count}
-                      </span>
-                      {repo.fork && (
-                        <span className="flex items-center gap-1">
-                          <GitFork className="size-3" />
-                          Fork
-                        </span>
-                      )}
-                    </div>
-                    {repo.topics.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {repo.topics.slice(0, 3).map((topic) => (
-                          <Badge key={topic} variant="secondary" className="text-[10px] px-1.5 py-0">
-                            {topic}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </a>
+          {/* Right column: contribution graph + repos */}
+          <div className="space-y-6">
+            {/* Contribution graph placeholder */}
+            <div className="glass p-6">
+              <h4 className="text-sm font-semibold mb-3 font-[family-name:var(--font-space)]">
+                Contribution Graph
+              </h4>
+              <div className="grid grid-cols-7 gap-1">
+                {graphBlocks.map((bg, i) => (
+                  <div
+                    key={`graph-${i}`}
+                    className={`aspect-square rounded-sm ${bg}`}
+                  />
                 ))}
               </div>
             </div>
-          )}
+
+            {/* Recent repos */}
+            <div className="space-y-3">
+              {repos.slice(0, 3).map((repo) => (
+                <div key={repo.name} className="glass p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <a
+                      href={repo.html_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1.5"
+                    >
+                      <GitBranch size={13} className="shrink-0" />
+                      {repo.name}
+                    </a>
+                    <div className="flex items-center gap-3 text-muted">
+                      {repo.stargazers_count !== undefined && (
+                        <span className="flex items-center gap-1 text-[11px]">
+                          <Star size={11} />
+                          {repo.stargazers_count}
+                        </span>
+                      )}
+                      {repo.forks_count !== undefined && (
+                        <span className="flex items-center gap-1 text-[11px]">
+                          <GitBranch size={11} />
+                          {repo.forks_count}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {repo.description && (
+                    <p className="text-xs text-muted leading-relaxed line-clamp-2">
+                      {repo.description}
+                    </p>
+                  )}
+                  {repo.language && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-muted font-[family-name:var(--font-mono)]">
+                      {repo.language}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>

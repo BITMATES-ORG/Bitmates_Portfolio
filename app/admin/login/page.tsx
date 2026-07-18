@@ -1,108 +1,101 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { LogIn, Mail, Lock } from "lucide-react";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
+import { LockKeyhole } from "lucide-react"
 
-export default function AdminLoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+export default function LoginPage() {
+  const router = useRouter()
+  const supabase = createClient()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+  async function handleSignIn(e: React.FormEvent) {
+    e.preventDefault()
+    setError("")
+    setLoading(true)
 
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Invalid credentials");
-      }
+    setLoading(false)
 
-      router.push("/admin");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setLoading(false);
+    if (signInError) {
+      setError(signInError.message)
+      return
     }
-  };
+
+    router.push("/admin/overview")
+    router.refresh()
+  }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black px-4">
-      <div className="w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-950 p-8 shadow-2xl">
-        <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-white">Admin Login</h1>
-          <p className="mt-1 text-sm text-zinc-400">Sign in to manage your portfolio</p>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="glow" style={{ width: 400, height: 400, background: "#4fa3ff", top: "20%", left: "30%" }} />
+      <div className="glow" style={{ width: 300, height: 300, background: "#7a5cff", bottom: "20%", right: "30%" }} />
+
+      <div className="glass-strong relative w-full max-w-md p-8">
+        <div className="flex flex-col items-center text-center mb-8">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#4fa3ff]/10">
+            <LockKeyhole size={26} className="text-[#4fa3ff]" />
+          </div>
+          <h1 className="font-heading text-2xl font-semibold text-foreground">
+            Admin sign in
+          </h1>
+          <p className="mt-1 text-sm text-muted">
+            Enter your credentials to access the dashboard
+          </p>
         </div>
 
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-800 bg-red-900/20 px-4 py-3 text-sm text-red-400">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSignIn} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-zinc-300">
+            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-muted">
               Email
             </label>
-            <div className="relative mt-1">
-              <Mail
-                size={16}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
-              />
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full rounded-lg border border-zinc-800 bg-zinc-900 py-2.5 pl-10 pr-3 text-sm text-white placeholder-zinc-500 focus:border-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-600"
-                placeholder="admin@example.com"
-              />
-            </div>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@example.com"
+              required
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-foreground placeholder:text-muted/50 focus:border-[#4fa3ff] focus:outline-none focus:ring-1 focus:ring-[#4fa3ff]/30 transition-colors"
+            />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-zinc-300">
+            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-muted">
               Password
             </label>
-            <div className="relative mt-1">
-              <Lock
-                size={16}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
-              />
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full rounded-lg border border-zinc-800 bg-zinc-900 py-2.5 pl-10 pr-3 text-sm text-white placeholder-zinc-500 focus:border-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-600"
-                placeholder="Enter your password"
-              />
-            </div>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-foreground placeholder:text-muted/50 focus:border-[#4fa3ff] focus:outline-none focus:ring-1 focus:ring-[#4fa3ff]/30 transition-colors"
+            />
           </div>
+
+          {error && (
+            <p className="text-sm text-red-400 bg-red-400/10 rounded-lg px-3 py-2">{error}</p>
+          )}
 
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 disabled:opacity-50"
+            className="w-full rounded-xl bg-[#4fa3ff] py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#4fa3ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <LogIn size={16} />
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
       </div>
     </div>
-  );
+  )
 }

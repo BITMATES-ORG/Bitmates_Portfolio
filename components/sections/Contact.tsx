@@ -1,11 +1,7 @@
 "use client"
 
-import { useState, type FormEvent } from "react"
-import { Mail, MapPin, MessageCircle, Send, Github, Linkedin, Twitter } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+import { useState, useRef, type FormEvent } from "react"
+import { Mail, MapPin, MessageSquare, CheckCircle2, AlertCircle } from "lucide-react"
 
 interface ContactProps {
   email: string
@@ -13,160 +9,140 @@ interface ContactProps {
   location: string
 }
 
-interface SocialItem {
-  key: string
-  icon: typeof Mail
-  label: string
-  href: string
-}
-
 export default function Contact({ email, whatsapp, location }: ContactProps) {
-  const [name, setName] = useState("")
-  const [contactEmail, setContactEmail] = useState("")
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
   const [message, setMessage] = useState("")
-  const [sending, setSending] = useState(false)
-  const [sent, setSent] = useState(false)
-  const [error, setError] = useState("")
-
-  const socials: SocialItem[] = [
-    { key: "email", icon: Mail, label: "Email", href: `mailto:${email}` },
-    ...(whatsapp ? [{ key: "whatsapp", icon: MessageCircle, label: "WhatsApp", href: whatsapp }] : []),
-    ...(location ? [{ key: "location", icon: MapPin, label: "Location", href: `https://maps.google.com/?q=${encodeURIComponent(location)}` }] : []),
-  ]
+  const formRef = useRef<HTMLFormElement>(null)
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!name || !contactEmail || !message) return
+    const form = new FormData(formRef.current ?? undefined)
+    const payload = {
+      name: String(form.get("name") ?? ""),
+      email: String(form.get("email") ?? ""),
+      message: String(form.get("message") ?? ""),
+    }
 
-    setSending(true)
-    setError("")
+    if (!payload.name || !payload.email || !payload.message) {
+      setStatus("error")
+      setMessage("Please fill in your name, email, and message.")
+      return
+    }
+
+    setStatus("loading")
+    setMessage("")
 
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email: contactEmail, message }),
+        body: JSON.stringify(payload),
       })
 
-      if (!res.ok) throw new Error("Failed to send message")
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || "Unable to send message")
 
-      setSent(true)
-      setName("")
-      setContactEmail("")
-      setMessage("")
-    } catch {
-      setError("Something went wrong. Please try again.")
-    } finally {
-      setSending(false)
+      setStatus("success")
+      setMessage("Thanks for reaching out. I will get back to you soon.")
+      formRef.current?.reset()
+    } catch (err) {
+      setStatus("error")
+      setMessage(err instanceof Error ? err.message : "Unable to send message")
     }
   }
 
+  const chips = [
+    { icon: Mail, label: "Email", value: email, href: `mailto:${email}` },
+    { icon: MessageSquare, label: "WhatsApp", value: whatsapp, href: `https://wa.me/${whatsapp.replace(/\D/g, "")}` },
+    { icon: MapPin, label: "Location", value: location },
+  ]
+
   return (
-    <section id="contact" className="relative py-24">
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Get In Touch</h2>
-          <div className="w-20 h-1 bg-primary mx-auto rounded-full" />
+    <section
+      id="contact"
+      className="relative py-28 px-6 md:px-12"
+    >
+      <div className="max-w-6xl mx-auto">
+        <div className="section-label">
+          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+          CONTACT
         </div>
 
-        <div className="grid md:grid-cols-2 gap-12 max-w-4xl mx-auto">
-          <div className="space-y-6">
-            <div className="glass-card rounded-2xl p-6 space-y-4">
-              <h3 className="text-lg font-semibold">Contact Information</h3>
-              <p className="text-sm text-muted-foreground">
-                Feel free to reach out for collaborations, opportunities, or just a friendly hello.
-              </p>
-              <div className="space-y-3">
-                {socials.map(({ key, icon: Icon, label, href }) => (
-                  <a
-                    key={key}
-                    href={href}
-                    target={key !== "email" ? "_blank" : undefined}
-                    rel={key !== "email" ? "noopener noreferrer" : undefined}
-                    className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Icon className="size-4 text-primary" />
-                    </div>
-                    <span>{key === "email" ? email : key === "whatsapp" ? "WhatsApp" : location}</span>
-                  </a>
-                ))}
-              </div>
+        <div className="grid md:grid-cols-2 gap-10">
+          {/* Form */}
+          <form ref={formRef} onSubmit={handleSubmit} className="glass p-8 space-y-6">
+            <div>
+              <label className="block text-sm font-medium mb-2">Name</label>
+              <input
+                name="name"
+                type="text"
+                placeholder="Your name"
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-primary/40 transition-colors"
+              />
             </div>
 
-            <div className="flex items-center gap-3 justify-center md:justify-start">
-              {[
-                { icon: Github, href: "https://github.com" },
-                { icon: Linkedin, href: "https://linkedin.com" },
-                { icon: Twitter, href: "https://x.com" },
-              ].map(({ icon: Icon, href }) => (
-                <a
-                  key={href}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="glass p-3 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                >
-                  <Icon className="size-5" />
-                </a>
-              ))}
+            <div>
+              <label className="block text-sm font-medium mb-2">Email</label>
+              <input
+                name="email"
+                type="email"
+                placeholder="your@email.com"
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-primary/40 transition-colors"
+              />
             </div>
-          </div>
 
-          <div>
-            <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-6 space-y-4">
-              <div>
-                <label htmlFor="contact-name" className="block text-sm font-medium mb-1.5">
-                  Name
-                </label>
-                <Input
-                  id="contact-name"
-                  placeholder="Your name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="contact-email" className="block text-sm font-medium mb-1.5">
-                  Email
-                </label>
-                <Input
-                  id="contact-email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="contact-message" className="block text-sm font-medium mb-1.5">
-                  Message
-                </label>
-                <Textarea
-                  id="contact-message"
-                  placeholder="Your message..."
-                  rows={5}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  required
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Message</label>
+              <textarea
+                name="message"
+                rows={4}
+                placeholder="Your message..."
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-primary/40 transition-colors resize-none"
+              />
+            </div>
 
-              {error && (
-                <p className="text-sm text-red-500">{error}</p>
-              )}
+            {message ? (
+              <div className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-sm ${status === "success" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-rose-500/30 bg-rose-500/10 text-rose-300"}`}>
+                {status === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                <span>{message}</span>
+              </div>
+            ) : null}
 
-              {sent ? (
-                <p className="text-sm text-green-600 dark:text-green-400">Message sent successfully!</p>
-              ) : (
-                <Button type="submit" variant="primary" className="w-full" disabled={sending}>
-                  <Send className="size-4" />
-                  {sending ? "Sending..." : "Send Message"}
-                </Button>
-              )}
-            </form>
+            <button
+              type="submit"
+              disabled={status === "loading"}
+              className="w-full py-3 rounded-full bg-primary text-white text-sm font-medium hover:brightness-110 transition-all shadow-lg shadow-primary/25 disabled:opacity-70"
+            >
+              {status === "loading" ? "Sending..." : "Send Message"}
+            </button>
+          </form>
+
+          {/* Sidebar */}
+          <div className="space-y-4">
+            {chips.map((chip) => (
+              <div key={chip.label} className="glass p-5 flex items-center gap-4">
+                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <chip.icon size={18} className="text-primary" />
+                </div>
+                <div>
+                  <div className="text-xs text-muted font-[family-name:var(--font-mono)] uppercase tracking-wider">
+                    {chip.label}
+                  </div>
+                  {chip.href ? (
+                    <a
+                      href={chip.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium hover:text-primary transition-colors"
+                    >
+                      {chip.value}
+                    </a>
+                  ) : (
+                    <div className="text-sm font-medium">{chip.value}</div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

@@ -1,97 +1,77 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { getAuthUser } from "@/lib/auth";
-import { slugify } from "@/lib/utils";
-import { z } from "zod";
-
-const UpdateSchema = z.object({
-  title: z.string().min(1).optional(),
-  content: z.string().min(1).optional(),
-  excerpt: z.string().optional(),
-  coverImage: z.string().nullable().optional(),
-  author: z.string().optional(),
-  published: z.boolean().optional(),
-});
+import { createClient, createAdminClient } from "@/lib/supabase/server"
+import { NextResponse } from "next/server"
+import { mapCamel } from "@/lib/utils"
 
 export async function GET(
-  req: NextRequest,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
+  const { id } = await params
+  const supabase = await createClient()
+  const { data: authData } = await supabase.auth.getUser()
+  const isAdmin = !!authData.user
 
-    const post = await prisma.blogPost.findUnique({
-      where: { id },
-      include: {
-        _count: { select: { comments: true, likes: true } },
-      },
-    });
+  let query = supabase.from("blog_posts").select("*").eq("id", id)
 
-    if (!post) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(post);
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  if (!isAdmin) {
+    query = query.eq("published", true)
   }
+
+  const { data, error } = await query.single()
+
+  if (error || !data) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
+  return NextResponse.json(mapCamel(data))
 }
 
-export async function PUT(
-  req: NextRequest,
+export async function PATCH(
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const { id } = await params
+  const supabase = await createClient()
+  const { data: authData, error: authError } = await supabase.auth.getUser()
 
-    const { id } = await params;
-    const body = await req.json();
-    const parsed = UpdateSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
-    }
-
-    const data: Record<string, unknown> = { ...parsed.data };
-    if (data.title) {
-      let slug = slugify(data.title as string);
-      const existing = await prisma.blogPost.findFirst({
-        where: { slug, NOT: { id } },
-      });
-      if (existing) {
-        slug = `${slug}-${Date.now()}`;
-      }
-      data.slug = slug;
-    }
-
-    const post = await prisma.blogPost.update({
-      where: { id },
-      data,
-    });
-
-    return NextResponse.json(post);
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  if (authError || !authData.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  const body = await request.json()
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from("blog_posts")
+    .update(body)
+    .eq("id", id)
+    .select()
+    .single()
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json(mapCamel(data))
 }
 
 export async function DELETE(
-  req: NextRequest,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const { id } = await params
+  const supabase = await createClient()
+  const { data: authData, error: authError } = await supabase.auth.getUser()
 
-    const { id } = await params;
-    await prisma.blogPost.delete({ where: { id } });
-
-    return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  if (authError || !authData.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  const admin = createAdminClient()
+  const { error } = await admin.from("blog_posts").delete().eq("id", id)
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ message: "Deleted successfully" })
 }

@@ -1,59 +1,53 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { getAuthUser } from "@/lib/auth";
-import { z } from "zod";
+import { createClient, createAdminClient } from "@/lib/supabase/server"
+import { NextResponse } from "next/server"
+import { mapCamel } from "@/lib/utils"
 
-const UpdateSchema = z.object({
-  clientName: z.string().min(1).optional(),
-  company: z.string().optional(),
-  review: z.string().min(1).optional(),
-  rating: z.number().min(1).max(5).optional(),
-  published: z.boolean().optional(),
-});
-
-export async function PUT(
-  req: NextRequest,
+export async function PATCH(
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const { id } = await params
+  const supabase = await createClient()
+  const { data: authData, error: authError } = await supabase.auth.getUser()
 
-    const { id } = await params;
-    const body = await req.json();
-    const parsed = UpdateSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
-    }
-
-    const testimonial = await prisma.testimonial.update({
-      where: { id },
-      data: parsed.data,
-    });
-
-    return NextResponse.json(testimonial);
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  if (authError || !authData.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  const body = await request.json()
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from("testimonials")
+    .update(body)
+    .eq("id", id)
+    .select()
+    .single()
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json(mapCamel(data))
 }
 
 export async function DELETE(
-  req: NextRequest,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const { id } = await params
+  const supabase = await createClient()
+  const { data: authData, error: authError } = await supabase.auth.getUser()
 
-    const { id } = await params;
-    await prisma.testimonial.delete({ where: { id } });
-
-    return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  if (authError || !authData.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  const admin = createAdminClient()
+  const { error } = await admin.from("testimonials").delete().eq("id", id)
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ message: "Deleted successfully" })
 }

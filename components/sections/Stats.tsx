@@ -1,65 +1,33 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { gsap } from "gsap"
+import { useEffect, useRef } from "react"
+import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
-import { cn } from "@/lib/utils"
-import { Globe, Smartphone, Server, Brain, Code2, Users, Star, Award, Zap, Briefcase, GitBranch, Clock } from "lucide-react"
+import { type LucideIcon } from "lucide-react"
 
 gsap.registerPlugin(ScrollTrigger)
 
 interface Stat {
   label: string
   value: number
-  icon: string
+  icon?: string
 }
 
 interface StatsProps {
   stats: Stat[]
 }
 
-const iconMap: Record<string, typeof Globe> = {
-  Globe, Smartphone, Server, Brain, Code2, Users, Star, Award, Zap, Briefcase, GitBranch, Clock,
-}
-
-function AnimatedCounter({ value, duration = 2 }: { value: number; duration?: number }) {
-  const [count, setCount] = useState(0)
-  const ref = useRef<HTMLSpanElement>(null)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-
-    const obj = { val: 0 }
-    gsap.to(obj, {
-      val: value,
-      duration,
-      ease: "power2.out",
-      scrollTrigger: {
-        trigger: el,
-        start: "top 90%",
-      },
-      onUpdate: () => setCount(Math.floor(obj.val)),
-    })
-  }, [value, duration])
-
-  return <span ref={ref}>{count.toLocaleString()}</span>
-}
+const colors = ["#4fa3ff", "#a68bff", "#5fe0d0", "#ff8f4f"]
 
 export default function Stats({ stats }: StatsProps) {
   const sectionRef = useRef<HTMLElement>(null)
-  const cardsRef = useRef<HTMLDivElement>(null)
+  const gridRef = useRef<HTMLDivElement>(null)
+  const numbersRef = useRef<(HTMLDivElement | null)[]>([])
 
   useEffect(() => {
-    const cards = cardsRef.current?.children
-    if (!cards?.length) return
-
     const ctx = gsap.context(() => {
-      gsap.from(cards, {
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 85%",
-        },
+      gsap.from(gridRef.current?.children || [], {
+        scrollTrigger: { trigger: sectionRef.current, start: "top 85%" },
         y: 30,
         opacity: 0,
         duration: 0.6,
@@ -69,35 +37,50 @@ export default function Stats({ stats }: StatsProps) {
     }, sectionRef)
 
     return () => ctx.revert()
-  }, [stats])
+  }, [])
 
-  if (!stats.length) return null
+  useEffect(() => {
+    numbersRef.current.forEach((el, i) => {
+      if (!el) return
+      const target = stats[i]?.value ?? 0
+
+      gsap.to(el, {
+        scrollTrigger: { trigger: el, start: "top 90%" },
+        innerHTML: target,
+        duration: 2,
+        ease: "power2.out",
+        snap: { innerHTML: 1 },
+        onUpdate: function () {
+          const val = Math.round(this.progress() * target)
+          if (el) el.textContent = val.toString()
+        },
+      })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stats])
 
   return (
     <section
-      id="stats"
       ref={sectionRef}
-      className="relative py-20"
+      id="stats"
+      className="relative py-20 px-6 md:px-12"
     >
-      <div className="max-w-6xl mx-auto px-4">
-        <div ref={cardsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {stats.map((stat) => {
-            const Icon = iconMap[stat.icon] || Zap
-            return (
+      <div className="max-w-6xl mx-auto">
+        <div ref={gridRef} className="grid md:grid-cols-4 gap-6">
+          {stats.map((s, i) => (
+            <div key={`${s.label}-${i}`} className="glass p-6 text-center">
               <div
-                key={stat.label}
-                className="glass-card rounded-2xl p-6 text-center space-y-2"
+                ref={(el) => { numbersRef.current[i] = el }}
+                className="text-4xl md:text-5xl font-bold font-[family-name:var(--font-space)]"
+                style={{ color: colors[i % colors.length] }}
               >
-                <div className="flex justify-center">
-                  <Icon className="size-8 text-primary" />
-                </div>
-                <div className="text-3xl md:text-4xl font-bold">
-                  <AnimatedCounter value={stat.value} />
-                </div>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
+                0
               </div>
-            )
-          })}
+              <div className="text-sm text-muted mt-2 font-[family-name:var(--font-mono)] uppercase tracking-wider">
+                {s.label}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>

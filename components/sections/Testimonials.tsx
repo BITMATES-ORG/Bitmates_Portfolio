@@ -1,15 +1,18 @@
 "use client"
 
-import { useState } from "react"
-import { cn } from "@/lib/utils"
-import { ChevronLeft, ChevronRight, Star } from "lucide-react"
+import { useEffect, useRef } from "react"
+import gsap from "gsap"
+import { ScrollTrigger } from "gsap/ScrollTrigger"
+import { Quote } from "lucide-react"
+
+gsap.registerPlugin(ScrollTrigger)
 
 interface Testimonial {
-  id: string
   clientName: string
   company: string
   review: string
   rating: number
+  avatar?: string
 }
 
 interface TestimonialsProps {
@@ -17,82 +20,78 @@ interface TestimonialsProps {
 }
 
 export default function Testimonials({ testimonials }: TestimonialsProps) {
-  const [current, setCurrent] = useState(0)
+  const sectionRef = useRef<HTMLElement>(null)
+  const gridRef = useRef<HTMLDivElement>(null)
 
-  if (!testimonials.length) return null
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from(gridRef.current?.children || [], {
+        scrollTrigger: { trigger: sectionRef.current, start: "top 80%" },
+        y: 40,
+        opacity: 0,
+        duration: 0.7,
+        stagger: 0.12,
+        ease: "power3.out",
+      })
+    }, sectionRef)
 
-  const prev = () => setCurrent((c) => (c === 0 ? testimonials.length - 1 : c - 1))
-  const next = () => setCurrent((c) => (c === testimonials.length - 1 ? 0 : c + 1))
-
-  const t = testimonials[current]
+    return () => ctx.revert()
+  }, [])
 
   return (
-    <section id="testimonials" className="relative py-24">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Testimonials</h2>
-          <div className="w-20 h-1 bg-primary mx-auto rounded-full" />
+    <section
+      ref={sectionRef}
+      id="testimonials"
+      className="relative py-28 px-6 md:px-12"
+    >
+      <div className="max-w-6xl mx-auto">
+        <div className="section-label">
+          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+          TESTIMONIALS
         </div>
 
-        <div className="relative">
-          <div className="glass-card rounded-2xl p-8 md:p-12 text-center">
-            <div className="flex justify-center gap-1 mb-6">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  className={cn(
-                    "size-5",
-                    i < t.rating ? "fill-primary text-primary" : "text-muted-foreground"
-                  )}
-                />
-              ))}
-            </div>
+        <div ref={gridRef} className="grid md:grid-cols-3 gap-6">
+          {testimonials.map((t, index) => (
+            <div key={`${t.clientName}-${index}`} className="glass p-6 space-y-4 relative">
+              <Quote size={24} className="text-primary/20 absolute top-4 right-4" />
 
-            <blockquote className="text-lg md:text-xl text-muted-foreground mb-8 leading-relaxed">
-              &ldquo;{t.review}&rdquo;
-            </blockquote>
-
-            <div>
-              <p className="font-semibold">{t.clientName}</p>
-              {t.company && (
-                <p className="text-sm text-muted-foreground">{t.company}</p>
-              )}
-            </div>
-          </div>
-
-          {testimonials.length > 1 && (
-            <div className="flex items-center justify-center gap-4 mt-8">
-              <button
-                onClick={prev}
-                className="glass p-3 rounded-full hover:bg-accent transition-colors"
-                aria-label="Previous testimonial"
-              >
-                <ChevronLeft className="size-5" />
-              </button>
-
-              <div className="flex gap-2">
-                {testimonials.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrent(i)}
-                    className={cn(
-                      "size-2.5 rounded-full transition-all",
-                      i === current ? "bg-primary scale-125" : "bg-border"
-                    )}
-                    aria-label={`Go to testimonial ${i + 1}`}
-                  />
+              {/* Stars */}
+              <div className="flex gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <span
+                    key={`star-${index}-${i}`}
+                    className={`text-sm ${i < t.rating ? "text-yellow-400" : "text-white/10"}`}
+                  >
+                    ★
+                  </span>
                 ))}
               </div>
 
-              <button
-                onClick={next}
-                className="glass p-3 rounded-full hover:bg-accent transition-colors"
-                aria-label="Next testimonial"
-              >
-                <ChevronRight className="size-5" />
-              </button>
+              <p className="text-sm text-muted leading-relaxed">
+                &ldquo;{t.review}&rdquo;
+              </p>
+
+              <div className="flex items-center gap-3 pt-2">
+                <div className="w-9 h-9 rounded-full overflow-hidden bg-card ring-1 ring-white/10 shrink-0">
+                  {t.avatar ? (
+                    <img
+                      src={t.avatar}
+                      alt={t.clientName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs font-bold text-primary">
+                      {t.clientName.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="text-sm font-medium">{t.clientName}</div>
+                  <div className="text-xs text-muted">{t.company}</div>
+                </div>
+              </div>
             </div>
-          )}
+          ))}
         </div>
       </div>
     </section>

@@ -1,47 +1,27 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { getAuthUser } from "@/lib/auth";
-import { z } from "zod";
+import { createAdminClient } from "@/lib/supabase/server"
+import { NextResponse } from "next/server"
+import { mapCamel } from "@/lib/utils"
 
-const CreateSchema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  message: z.string().min(1),
-});
+export async function POST(request: Request) {
+  const body = await request.json()
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const parsed = CreateSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
-    }
-
-    const message = await prisma.contactMessage.create({ data: parsed.data });
-    return NextResponse.json(message, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  if (!body.name || !body.email || !body.message) {
+    return NextResponse.json(
+      { error: "Name, email, and message are required" },
+      { status: 400 }
+    )
   }
-}
 
-export async function GET(req: NextRequest) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from("contact_messages")
+    .insert(body)
+    .select()
+    .single()
 
-    const { searchParams } = new URL(req.url);
-    const unread = searchParams.get("unread");
-    const where = unread === "true" ? { read: false } : {};
-
-    const messages = await prisma.contactMessage.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json(messages);
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  return NextResponse.json(mapCamel(data), { status: 201 })
 }

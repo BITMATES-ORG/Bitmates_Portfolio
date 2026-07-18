@@ -1,59 +1,59 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { z } from "zod";
+import { createClient, createAdminClient } from "@/lib/supabase/server"
+import { NextResponse } from "next/server"
+import { mapCamel } from "@/lib/utils"
 
-const CreateSchema = z.object({
-  postId: z.string().min(1),
-  parentId: z.string().optional(),
-  author: z.string().min(1),
-  email: z.string().email(),
-  content: z.string().min(1),
-});
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const postId = searchParams.get("post_id")
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const parsed = CreateSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
-    }
-
-    const { postId, ...data } = parsed.data;
-
-    const comment = await prisma.comment.create({
-      data: { postId, ...data },
-    });
-
-    await prisma.blogPost.update({
-      where: { id: postId },
-      data: { commentCount: { increment: 1 } },
-    });
-
-    return NextResponse.json(comment, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  if (!postId) {
+    return NextResponse.json(
+      { error: "post_id query parameter is required" },
+      { status: 400 }
+    )
   }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("comments")
+    .select("*")
+    .eq("blog_post_id", postId)
+    .order("created_at", { ascending: true })
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json(mapCamel(data ?? []))
 }
 
-export async function GET(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const postId = searchParams.get("postId");
+export async function POST(request: Request) {
+  const supabase = await createClient()
+  const { data: authData, error: authError } = await supabase.auth.getUser()
 
-    if (!postId) {
-      return NextResponse.json({ error: "postId query parameter is required" }, { status: 400 });
-    }
-
-    const comments = await prisma.comment.findMany({
-      where: { postId, parentId: null },
-      include: {
-        replies: { orderBy: { createdAt: "asc" } },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json(comments);
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  if (authError || !authData.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  const body = await request.json()
+
+  if (!body.blog_post_id || !body.content) {
+    return NextResponse.json(
+      { error: "blog_post_id and content are required" },
+      { status: 400 }
+    )
+  }
+
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from("comments")
+    .insert({ ...body, user_id: authData.user.id })
+    .select()
+    .single()
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json(mapCamel(data), { status: 201 })
 }

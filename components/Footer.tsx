@@ -1,120 +1,108 @@
 "use client"
 
-import { Github, Linkedin, Twitter, Mail, Heart } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Github, Linkedin, XIcon } from "lucide-react"
 
-interface FooterProps {
-  github?: string
-  linkedin?: string
-  twitter?: string
-  email?: string
-}
-
-const navLinks = [
-  { label: "Home", href: "#hero" },
+const siteLinks = [
   { label: "About", href: "#about" },
-  { label: "Skills", href: "#skills" },
   { label: "Projects", href: "#projects" },
-  { label: "Experience", href: "#experience" },
-  { label: "Blog", href: "#blog" },
+  { label: "Blog", href: "/blog" },
   { label: "Contact", href: "#contact" },
 ]
 
-export default function Footer({ github, linkedin, twitter, email }: FooterProps) {
-  const scrollTo = (href: string) => {
-    const id = href.replace("#", "")
-    const el = document.getElementById(id)
-    el?.scrollIntoView({ behavior: "smooth" })
-  }
+const workLinks = [
+  { label: "Services", href: "#services" },
+  { label: "Resume", href: "/resume.pdf" },
+  { label: "Testimonials", href: "#testimonials" },
+]
 
+const socials = [
+  { label: "GitHub", href: "https://github.com/Adelere", icon: Github },
+  { label: "LinkedIn", href: "https://linkedin.com/in/Adelere", icon: Linkedin },
+  { label: "X", href: "https://x.com/Adelere", icon: XIcon },
+]
+
+export default function Footer() {
   return (
-    <footer className="relative border-t border-border">
-      <div className="max-w-6xl mx-auto px-4 py-12">
-        <div className="grid md:grid-cols-3 gap-8 items-start">
-          <div>
-            <h3 className="text-lg font-bold">AdelereKehinde</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Fullstack Developer
-            </p>
-            <div className="flex gap-2 mt-4">
-              {github && (
-                <a
-                  href={github}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="glass p-2.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                  aria-label="GitHub"
-                >
-                  <Github className="size-4" />
-                </a>
-              )}
-              {linkedin && (
-                <a
-                  href={linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="glass p-2.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                  aria-label="LinkedIn"
-                >
-                  <Linkedin className="size-4" />
-                </a>
-              )}
-              {twitter && (
-                <a
-                  href={twitter}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="glass p-2.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                  aria-label="X / Twitter"
-                >
-                  <Twitter className="size-4" />
-                </a>
-              )}
-              {email && (
-                <a
-                  href={`mailto:${email}`}
-                  className="glass p-2.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                  aria-label="Email"
-                >
-                  <Mail className="size-4" />
-                </a>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-semibold mb-3">Quick Links</h4>
-            <nav className="flex flex-col gap-2">
-              {navLinks.map((link) => (
-                <button
-                  key={link.href}
-                  onClick={() => scrollTo(link.href)}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left"
-                >
-                  {link.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-semibold mb-3">Get In Touch</h4>
-            {email && (
-              <a
-                href={`mailto:${email}`}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors block"
-              >
-                {email}
-              </a>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-10 pt-6 border-t border-border text-center">
-          <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
-            &copy; {new Date().getFullYear()} AdelereKehinde &mdash; Fullstack Developer
+    <footer
+      className="relative pt-20 pb-8 px-6 md:px-12"
+      style={{
+        borderTop: "1px solid rgba(255,255,255,0.06)",
+        background: "linear-gradient(160deg, rgba(255,255,255,0.03), transparent)",
+        backdropFilter: "blur(12px)",
+      }}
+    >
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+        <div className="md:col-span-1">
+          <a href="/" className="text-xl font-bold tracking-tight">
+            Adelere<span style={{ color: "#4fa3ff" }}>Kehinde</span>
+          </a>
+          <p className="mt-3 text-sm text-muted leading-relaxed max-w-xs">
+            Full-stack engineer building fast, polished digital products from database to pixel.
           </p>
         </div>
+
+        <div>
+          <h4 className="text-xs font-medium tracking-widest text-muted uppercase mb-4 font-[family-name:var(--font-mono)]">
+            Site
+          </h4>
+          <ul className="space-y-3">
+            {siteLinks.map((l) => (
+              <li key={l.label}>
+                <a
+                  href={l.href}
+                  className="text-sm text-foreground/70 hover:text-foreground transition-colors"
+                >
+                  {l.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="text-xs font-medium tracking-widest text-muted uppercase mb-4 font-[family-name:var(--font-mono)]">
+            Work
+          </h4>
+          <ul className="space-y-3">
+            {workLinks.map((l) => (
+              <li key={l.label}>
+                <a
+                  href={l.href}
+                  className="text-sm text-foreground/70 hover:text-foreground transition-colors"
+                >
+                  {l.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="text-xs font-medium tracking-widest text-muted uppercase mb-4 font-[family-name:var(--font-mono)]">
+            Connect
+          </h4>
+          <div className="flex gap-3">
+            {socials.map((s) => (
+              <a
+                key={s.label}
+                href={s.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 hover:border-primary/40 hover:bg-primary/10 transition-all"
+                aria-label={s.label}
+              >
+                <s.icon size={16} />
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div
+        className="max-w-6xl mx-auto pt-6 text-center text-xs text-muted"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        &copy; {new Date().getFullYear()} AdelereKehinde. All rights reserved.
       </div>
     </footer>
   )

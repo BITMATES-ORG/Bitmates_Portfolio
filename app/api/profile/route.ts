@@ -1,61 +1,63 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { getAuthUser } from "@/lib/auth";
-import { z } from "zod";
-
-const UpdateSchema = z.object({
-  fullName: z.string().min(1).optional(),
-  title: z.string().optional(),
-  tagline: z.string().optional(),
-  about: z.string().optional(),
-  profilePhoto: z.string().nullable().optional(),
-  resumeUrl: z.string().nullable().optional(),
-  github: z.string().optional(),
-  linkedin: z.string().optional(),
-  twitter: z.string().optional(),
-  email: z.string().email().optional(),
-  whatsapp: z.string().optional(),
-  location: z.string().optional(),
-  yearsOfExperience: z.number().int().optional(),
-});
+import { createClient, createAdminClient } from "@/lib/supabase/server"
+import { NextResponse } from "next/server"
+import { mapCamel } from "@/lib/utils"
 
 export async function GET() {
-  try {
-    let profile = await prisma.profile.findFirst();
-    if (!profile) {
-      profile = await prisma.profile.create({ data: {} });
-    }
-    return NextResponse.json(profile);
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from("profiles")
+    .select("*")
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  return NextResponse.json(mapCamel(data ?? {}))
 }
 
-export async function PUT(req: NextRequest) {
-  try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+export async function PATCH(request: Request) {
+  const supabase = await createClient()
+  const { data: authData, error: authError } = await supabase.auth.getUser()
 
-    const body = await req.json();
-    const parsed = UpdateSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
-    }
-
-    let profile = await prisma.profile.findFirst();
-    if (!profile) {
-      profile = await prisma.profile.create({ data: {} });
-    }
-
-    const updated = await prisma.profile.update({
-      where: { id: profile.id },
-      data: parsed.data,
-    });
-
-    return NextResponse.json(updated);
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  if (authError || !authData.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  const body = await request.json()
+  const admin = createAdminClient()
+
+  const { data: existing } = await admin
+    .from("profiles")
+    .select("id")
+    .limit(1)
+    .maybeSingle()
+
+  if (existing) {
+    const { data, error } = await admin
+      .from("profiles")
+      .update(body)
+      .eq("id", existing.id)
+      .select()
+      .single()
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(mapCamel(data))
+  }
+
+  const { data, error } = await admin
+    .from("profiles")
+    .insert(body)
+    .select()
+    .single()
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json(mapCamel(data))
 }

@@ -1,36 +1,45 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { z } from "zod";
+import { createAdminClient } from "@/lib/supabase/server"
+import { NextResponse } from "next/server"
 
-const Schema = z.object({
-  entityType: z.enum(["project", "blog"]),
-  entityId: z.string().min(1),
-});
+export async function POST(request: Request) {
+  const { table, id } = await request.json()
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const parsed = Schema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
-    }
-
-    const { entityType, entityId } = parsed.data;
-
-    if (entityType === "project") {
-      await prisma.project.update({
-        where: { id: entityId },
-        data: { viewCount: { increment: 1 } },
-      });
-    } else {
-      await prisma.blogPost.update({
-        where: { id: entityId },
-        data: { viewCount: { increment: 1 } },
-      });
-    }
-
-    return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  if (!table || !id) {
+    return NextResponse.json(
+      { error: "table and id are required" },
+      { status: 400 }
+    )
   }
+
+  if (!["projects", "blog_posts"].includes(table)) {
+    return NextResponse.json(
+      { error: "table must be 'projects' or 'blog_posts'" },
+      { status: 400 }
+    )
+  }
+
+  const admin = createAdminClient()
+
+  const { data: existing } = await admin
+    .from(table)
+    .select("views")
+    .eq("id", id)
+    .maybeSingle()
+
+  if (!existing) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
+  const currentViews = (existing.views as number) || 0
+
+  const { error } = await admin
+    .from(table)
+    .update({ views: currentViews + 1 })
+    .eq("id", id)
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ views: currentViews + 1 })
 }
