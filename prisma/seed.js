@@ -13,19 +13,11 @@ async function main() {
     return;
   }
 
-  const hashedPassword = await bcrypt.hash("Admin@123", 12);
+  const hashedPassword = await bcrypt.hash("bitmates", 12);
 
   const admin = await prisma.admin.create({
     data: {
-      email: "napg.adekunle@gmail.com",
-      password: hashedPassword,
-      name: "Admin",
-    },
-  });
-
-  await prisma.admin.create({
-    data: {
-      email: "adelerekehinde01@gmail.com",
+      email: "adelerekehinde@gmail.com",
       password: hashedPassword,
       name: "Admin",
     },
@@ -207,7 +199,7 @@ async function main() {
 
   console.log("Seed completed successfully!");
   console.log(`Admin email: ${admin.email}`);
-  console.log("Default password: Admin@123");
+  console.log("Default password: bitmates");
 }
 
 main()

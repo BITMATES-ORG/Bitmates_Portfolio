@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import LikeButton from "./LikeButton"
 import CommentSection from "./CommentSection"
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{ slug: string }>
 }

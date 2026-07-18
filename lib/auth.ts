@@ -85,4 +85,4 @@ export async function getAuthUser() {
   return newPayload;
 }
 
-export const ALLOWED_ADMINS = ["napg.adekunle@gmail.com", "adelerekehinde01@gmail.com"];
+export const ALLOWED_ADMINS = ["adelerekehinde@gmail.com"];

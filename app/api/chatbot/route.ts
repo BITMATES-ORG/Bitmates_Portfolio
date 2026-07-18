@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import OpenAI from "openai";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,6 +7,13 @@ export async function POST(req: NextRequest) {
 
     if (!message || typeof message !== "string") {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
+    }
+
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({
+        reply: "I'm currently in offline mode. Please check back later!",
+      });
     }
 
     const [profile, projects, blogPosts, workExperience, services, testimonials] =
@@ -56,19 +60,32 @@ export async function POST(req: NextRequest) {
 
 Context: ${JSON.stringify(contextData, null, 2)}`;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: message },
-      ],
-      max_tokens: 500,
-      temperature: 0.7,
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "HTTP-Referer": "https://adelerekehinde.dev",
+        "X-Title": "AdelereKehinde Portfolio",
+      },
+      body: JSON.stringify({
+        model: "deepseek/deepseek-chat",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: message },
+        ],
+        max_tokens: 500,
+        temperature: 0.7,
+      }),
     });
 
-    const reply =
-      completion.choices[0]?.message?.content ||
-      "Sorry, I couldn't generate a response.";
+    if (!res.ok) {
+      console.error("OpenRouter error:", res.status, await res.text());
+      return NextResponse.json({ error: "AI service error" }, { status: 502 });
+    }
+
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content || "Sorry, I couldn't generate a response.";
 
     return NextResponse.json({ reply });
   } catch {
